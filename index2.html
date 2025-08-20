@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki Pokémon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 8rem);
+        }
+        .sidebar {
+            background: linear-gradient(to bottom, #3b82f6, #1e40af);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-y: auto;
+        }
+        .pokemon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .pokemon-card {
+            transition: transform 0.2s;
+        }
+        .pokemon-card:hover {
+            transform: translateY(-5px);
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+        }
+        button.selected {
+            opacity: 100 !important;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white py-4 shadow-lg">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="https://raw.githubusercontent.com/PokeAPI/media/master/logo/pokeapi_256.png" 
+                     alt="PokéAPI Logo" 
+                     class="h-10 mr-4">
+                <h1 class="text-2xl md:text-3xl font-bold">Wiki Pokémon ⚡</h1>
+            </div>
+            <nav class="hidden md:flex space-x-4">
+                <a href="#" class="hover:text-yellow-300">Inicio</a>
+                <a href="#" class="hover:text-yellow-300">Tipos</a>
+                <a href="#" class="hover:text-yellow-300">Acerca de</a>
+            </nav>
+            <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="mobileMenu" class="hidden md:hidden bg-blue-700 px-4 py-2">
+            <a href="#" class="block py-2 hover:text-yellow-300">Inicio</a>
+            <a href="#" class="block py-2 hover:text-yellow-300">Tipos</a>
+            <a href="#" class="block py-2 hover:text-yellow-300">Acerca de</a>
+        </div>
+    </header>
+
+    <!-- Main layout -->
+    <div class="layout container mx-auto px-4 py-8 flex-grow">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="text-xl font-semibold mb-4">Búsqueda</h2>
+            <input type="text" id="searchInput" placeholder="Ej: Pikachu" 
+                   class="w-full p-2 rounded bg-white text-gray-800 mb-6">
+
+            <h2 class="text-xl font-semibold mb-4">Filtros por Tipo</h2>
+            <div id="typeButtons" class="grid grid-cols-2 gap-2 mb-6"></div>
+
+            <h2 class="text-xl font-semibold mb-4">Generación</h2>
+            <select id="genFilter" class="w-full p-2 rounded bg-white text-gray-800 mb-6">
+                <option value="">Todas las generaciones</option>
+            </select>
+
+            <h2 class="text-xl font-semibold mb-4">Ordenar por</h2>
+            <select id="sortSelect" class="w-full p-2 rounded bg-white text-gray-800 mb-6">
+                <option value="id_asc">ID Ascendente</option>
+                <option value="id_desc">ID Descendente</option>
+                <option value="name_asc">Nombre Ascendente</option>
+                <option value="name_desc">Nombre Descendente</option>
+                <option value="height_asc">Altura Ascendente</option>
+                <option value="height_desc">Altura Descendente</option>
+                <option value="weight_asc">Peso Ascendente</option>
+                <option value="weight_desc">Peso Descendente</option>
+            </select>
+
+            <button id="clearFilters" class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Limpiar Filtros
+            </button>
+        </aside>
+
+        <!-- Main content -->
+        <main class="content">
+            <!-- Controles de paginación -->
+            <div class="flex justify-center mb-6 space-x-4">
+                <button id="prevBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400">
+                    Anterior
+                </button>
+                <span id="pageInfo" class="flex items-center px-4 py-2 bg-white rounded shadow">
+                    Página 1
+                </span>
+                <button id="nextBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Siguiente
+                </button>
+            </div>
+
+            <!-- Grid de Pokémon -->
+            <div id="pokemonGrid" class="pokemon-grid"></div>
+
+            <!-- Loading indicator -->
+            <div id="loading" class="text-center py-8 hidden">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <p class="mt-2 text-gray-600">Cargando Pokémon...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 Wiki Pokémon. Todos los derechos reservados.</p>
+            <p class="text-sm mt-2">Datos proporcionados por <a href="https://pokeapi.co/" 
+               class="text-yellow-300 hover:underline">PokéAPI</a>.</p>
+        </div>
+    </footer>
+
+    <!-- Modal para detalles del Pokémon -->
+    <div id="pokemonModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modalTitle" class="text-2xl font-bold text-blue-600"></h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="modalContent">
+                <!-- El contenido del modal se cargará aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script3.js"></script>
+</body>
+</html>
